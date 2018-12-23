@@ -61,7 +61,10 @@ def makeLegalMoveSafeIndex(board, n):
             board = board | n
     return flipTurn(board)
 
-def checkForEnd(board):
+def checkForEnd(board, moves):
+    if len(moves) == 0:
+        return 0
+
     rowOne = 0b111
     rowTwo = 0b111000
     rowThree = 0b111000000
@@ -72,9 +75,6 @@ def checkForEnd(board):
 
     diag = 0b100010001
     antiDiag = 0b1010100
-
-    if len(getLegalMoves(board)) == 0:
-        return 0
 
     for i in range(-1, 2, 2):
         if i == 1:
@@ -100,52 +100,38 @@ def checkForEnd(board):
     return None
 
 def standalone():
-    global board
+    board = 0b1000000000000000000
     while True:
         printBoard(board)
-        moves= getLegalMoves(board)
-        if len(moves) == 0:
-            print("draw")
-            return 0
-        #print(moves)
+        moves = getLegalMoves(board)
+        result = checkForEnd(board, moves)
+        if result != None:
+            return result
         while True:
-            m = input("which move do you want to make? ")
+            m = input("input a number for your move, or 'go' for an ai move\n")
+            if m == "go":
+                board = makeLegalMoveSafeIndex(board, getAIMove(board))
+                break
             try:
                 move = int(m)
+                if move in moves:
+                    board = makeLegalMoveSafeIndex(board, move)
+                    break
             except ValueError:
-                print("please enter a number")
-            if move in moves:
-                board = makeLegalMoveSafeIndex(board, move)
-                result = checkForEnd(board)
-                if result == 1:
-                    printBoard(board)
-                    print("win for o")
-                    return 1
-                if result == -1:
-                    printBoard(board)
-                    print("win for x")
-                    return -1
-                break
+                print("please enter a number or 'go'")
+
 
 def selectRandomMove(moves):
     return moves[random.randint(0, len(moves) - 1)]
 
 def getRandomGame(board):
     while True:
-        result = checkForEnd(board)
+        moves = getLegalMoves(board)
+        result = checkForEnd(board, moves)
         if result != None:
             return result
-
-        moves = getLegalMoves(board)
-        if len(moves) == 0:
-            return 0
         move = selectRandomMove(moves)
         board = makeLegalMoveSafeIndex(board, move)
-        result = checkForEnd(board)
-        if result == 1:
-            return 1
-        if result == -1:
-            return -1
 
 def selectRandomRootIndex(moves):
     return random.randint(0, len(moves) - 1)
@@ -165,7 +151,6 @@ class Tree:
         self.getMoves()
         return ("total is: " + str(self.total) + ", score: "
         + str(self.score) + ", moves: " + str(self.moves)
-        #+ "\nchildren: " + str(self.children)
         + "\nchildren scores: " + str(self.childrenScores))
 
     def getMoves(self):
@@ -178,7 +163,6 @@ class Tree:
         self.childrenScores[i] += result
 
         if self.parent != None:
-            #self.parent.childrenScores[i] += a
             self.parent.backProp(result, self.index)
 
     def simulate(self):
@@ -190,14 +174,8 @@ class Tree:
 
 
     def expand(self):
-        result = checkForEnd(self.board)
+        result = checkForEnd(self.board, self.moves)
         if result != None:
-            """
-            self.total += 1
-            self.score += result
-            if self.parent != None:
-                self.parent.backProp(result, self.index)
-            """
             return self
 
         else:
@@ -206,7 +184,7 @@ class Tree:
             move = self.moves[i]
 
             if self.children[i] == 0:
-                newBoard = makeLegalMoveSafeIndex(self.board, i)
+                newBoard = makeLegalMoveSafeIndex(self.board, self.moves[i])
                 self.children[i] = Tree(self, newBoard, i)
                 return self.children[i]
             else:
@@ -217,15 +195,10 @@ class Tree:
 selection expansion simulation backprop
 """
 
-def getAIMove():
-    global masterBoard
+def getAIMove(board):
     t = 0
-
-    rootTree = Tree(None, masterBoard, -1)
-    #print("Root tree:")
-    #printBoard(rootTree.board)
-
-    while t < 10000:
+    rootTree = Tree(None, board, -1)
+    while t < 1000:
         t += 1
         selectedTree = rootTree.expand()
         selectedTree.simulate()
@@ -235,11 +208,16 @@ def getAIMove():
     else:
         bestMoveIndex = rootTree.childrenScores.index(min(rootTree.childrenScores))
 
+    #childrenBreakdown(rootTree)
     return rootTree.moves[bestMoveIndex]
 
 
 def childrenBreakdown(tree):
     print()
+    print("----- Parent node-----")
+    print()
+    print(tree)
+    printBoard(tree.board)
     print()
     print("\n-----Children breakdown-----\n")
     for t in tree.children:
@@ -250,4 +228,6 @@ def childrenBreakdown(tree):
 masterBoard = 0b1000000000000000000
 #board = 0b11000000000000110
 
-print(getAIMove())
+#print(getAIMove(masterBoard))
+
+standalone()
