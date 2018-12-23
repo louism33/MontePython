@@ -1,10 +1,10 @@
-# a basic noughts and crosses game in python
+# monte carlo search tree to play basic noughts and crosses
 import sys
 import util.util
 import random
 
 turnConstant = 0b1000000000000000000
-def getTurnBit(board): # x starts
+def getTurnBit(board):
     return (board & turnConstant) == turnConstant
 def flipTurn(board):
     return board ^ turnConstant
@@ -190,11 +190,6 @@ class Tree:
             else:
                 return self.children[i].expand()
 
-
-"""
-selection expansion simulation backprop
-"""
-
 def getAIMove(board):
     t = 0
     rootTree = Tree(None, board, -1)
@@ -224,10 +219,5 @@ def childrenBreakdown(tree):
         if t != 0:
             printBoard(t.board)
             print(t)
-
-masterBoard = 0b1000000000000000000
-#board = 0b11000000000000110
-
-#print(getAIMove(masterBoard))
 
 standalone()
