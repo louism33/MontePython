@@ -1,5 +1,4 @@
 import sys
-import util.util
 import random
 import math
 
