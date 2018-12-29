@@ -1,3 +1,8 @@
-# PythonCrosses
-1. a basic noughts and crosses in python
-2. a monte carlo search tree to play it
+# Monte Python
+Basic MCST which can be plugged into games:
+
+Games:
+1. noughts and crosses (tic tac toe)
+2. connect 4
+
+Plug and play!
