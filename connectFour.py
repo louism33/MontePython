@@ -8,6 +8,15 @@ player 1 is x, player 0 is o, turn is t
 0btxxxxxxxxx...xo...ooooooooo
 """
 
+columns = []
+columns.append(0b100000010000001000000100000010000001)
+columns.append(0b1000000100000010000001000000100000010)
+columns.append(0b10000001000000100000010000001000000100)
+columns.append(0b100000010000001000000100000010000001000)
+columns.append(0b1000000100000010000001000000100000010000)
+columns.append(0b10000001000000100000010000001000000100000)
+columns.append(0b100000010000001000000100000010000001000000)
+
 turnConstant = 0b1000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 def getTurn(board):
     return (board & turnConstant) >> 84
@@ -28,7 +37,6 @@ def printBoard(board):
         elif ((board & (mask << 42)) == (mask << 42)):
             sys.stdout.write("x | ")
         else:
-            #sys.stdout.write(str(t-1)+" | ")
             sys.stdout.write(". | ")
         mask = mask * 2
         if ((t % 7 == 0) & (t < 42)):
@@ -43,36 +51,16 @@ def printBoard(board):
     sys.stdout.write("\n")
 
 def getLegalMoves(board):
+    global columns
     moves = []
-    mask = 1
-    t = 0
-    mask = 1
-
-    colOne = 0b100000010000001000000100000010000001
-    colTwo = 0b1000000100000010000001000000100000010
-    colThree = 0b10000001000000100000010000001000000100
-    colFour = 0b100000010000001000000100000010000001000
-    colFive = 0b1000000100000010000001000000100000010000
-    colSix = 0b10000001000000100000010000001000000100000
-    colSeven = 0b100000010000001000000100000010000001000000
-
     os = board & 0b111111111111111111111111111111111111111111
     xs = (board & 0b111111111111111111111111111111111111111111000000000000000000000000000000000000000000) >> 42
     occupied = os | xs
-
-    moves.append((colOne ^ (occupied & colOne)).bit_length() - 1)
-    moves.append((colTwo ^ (occupied & colTwo)).bit_length() - 1)
-    moves.append((colThree ^ (occupied & colThree)).bit_length() - 1)
-    moves.append((colFour ^ (occupied & colFour)).bit_length() - 1)
-    moves.append((colFive ^ (occupied & colFive)).bit_length() - 1)
-    moves.append((colSix ^ (occupied & colSix)).bit_length() - 1)
-    moves.append((colSeven ^ (occupied & colSeven)).bit_length() - 1)
-
-    print(moves)
-
-    #printMoves(moves)
+    for i in range(0, len(columns)):
+        if ((columns[i] & occupied) == columns[i]):
+            continue
+        moves.append(i)
     return moves
-
 
 def printMoves(moves):
     for i in range(0, len(moves)):
@@ -81,50 +69,47 @@ def printMoves(moves):
 def printMove(m):
     printBoard(1 << m)
 
-def makeLegalMoveByIndex(board, n):
-    n = 1 << n
+def makeLegalMoveByIndex(board, colNum):
+    global columns
+    os = board & 0b111111111111111111111111111111111111111111
+    xs = (board & 0b111111111111111111111111111111111111111111000000000000000000000000000000000000000000) >> 42
+    occupied = os | xs
+    squareToPlayIndex = ((columns[colNum] ^ (occupied & columns[colNum])).bit_length() - 1)
+    squareToPlay = 1 << squareToPlayIndex
     if getTurn(board) == 1:
-        board = board | (n << 42)
+        board = board | (squareToPlay << 42)
     else:
-        board = board | n
+        board = board | squareToPlay
     return flipTurn(board)
 
-
 def checkForEndByTurn(board, moves, player): # player 0 is o
-    rowOne = 0b111
-    rowTwo = 0b111000
-    rowThree = 0b111000000
-
-    colOne = 0b1001001
-    colTwo = 0b10010010
-    colThree = 0b100100100
-
-    diag = 0b100010001
-    antiDiag = 0b1010100
-
     if player == 1:
-        board = board >> 9
-    if rowOne & board == rowOne:
-        return 1
-    if rowTwo & board == rowTwo:
-        return 1
-    if rowThree & board == rowThree:
-        return 1
+        board = board >> 42
 
-    if colOne & board == colOne:
-        return 1
-    if colTwo & board == colTwo:
-        return 1
-    if colThree & board == colThree:
-        return 1
+    horizontalFour = 0b1111
+    for row in range(0, 6):
+        for i in range(0, 4):
+            mask = (horizontalFour << i) << (row * 7)
+            if mask & board == mask:
+                return 1
 
-    if diag & board == diag:
-        return 1
-    if antiDiag & board == antiDiag:
-        return 1
+    verticalFour = 0b1000000100000010000001
+    for row in range(0, 7):
+        for i in range(0, 3):
+            mask = (verticalFour << (i*7)) << (row)
+            if mask & board == mask:
+                return 1
 
-    if len(moves) == 0:
-        return 0.5
+    diag = 0b1000000010000000100000001
+    antiDiag = 0b1000001000001000001000
+    for row in range(0, 4):
+        for i in range(0, 3):
+            maskD = (diag << (i*7)) << (row)
+            maskAD = (antiDiag << (i*7)) << (row)
+            if maskD & board == maskD:
+                return 1
+            if maskAD & board == maskAD:
+                return 1
 
     return None
 
@@ -134,7 +119,7 @@ def standalone():
         printBoard(board)
         moves = getLegalMoves(board)
         player = getTurn(board)
-        result = checkForEndByTurn(board, moves, 1-player)
+        result = checkForEndByTurn(board, moves, 1 - player)
         if result != None:
             if result == 1:
                 if player == 1:
@@ -145,10 +130,11 @@ def standalone():
                 print("draw")
             return result
         while True:
+            print(moves)
             m = input("input a number for your move, or 'go' for an ai move\n")
             if m == "go":
-                #board = makeLegalMoveByIndex(board,
-                #mcSearch.getAIMove(5000, board, getTurn, getLegalMoves, checkForEndByTurn, makeLegalMoveByIndex))
+                board = makeLegalMoveByIndex(board,
+                mcSearch.getAIMove(5000, board, getTurn, getLegalMoves, checkForEndByTurn, makeLegalMoveByIndex))
                 break
             try:
                 move = int(m)
@@ -159,13 +145,3 @@ def standalone():
                 print("please enter a number or 'go'")
 
 standalone()
-
-
-
-board = 0b1110000000000000000000000000000000000000000000000000000000000000000000000000000000000
-printBoard(board)
-moves = getLegalMoves(board)
-print(moves)
-
-board = makeLegalMoveByIndex(board, moves[0])
-printBoard(board)
